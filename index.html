@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Entrepreneurship Jeopardy — TMGTPS5130</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #060d1f;
+  color: #f0f4ff;
+  min-height: 100vh;
+}
+#app { padding: 16px; max-width: 960px; margin: 0 auto; }
+
+.header { text-align: center; padding: 16px 0 14px; }
+.header h1 {
+  font-size: 28px; font-weight: 700; color: #e8d87a;
+  letter-spacing: 3px; text-transform: uppercase;
+  text-shadow: 0 0 30px rgba(232,216,122,0.3);
+}
+.header p { font-size: 13px; color: #6a83a4; margin-top: 5px; letter-spacing: 1px; text-transform: uppercase; }
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.cat-header {
+  background: #1a3a6e;
+  color: #c8d8f0;
+  border-radius: 8px;
+  padding: 10px 6px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.35;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border: 1px solid #2a4a8e;
+}
+
+.cell {
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 18px;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid #1a3a6e;
+  transition: background 0.12s, transform 0.1s;
+  user-select: none;
+  color: #e8d87a;
+  background: #0d2550;
+  font-style: italic;
+}
+.cell:hover { background: #1a3a6e; transform: scale(1.03); }
+.cell.used {
+  background: #060d1f;
+  color: #060d1f;
+  cursor: default;
+  border-color: #0d1a30;
+  pointer-events: none;
+}
+
+/* Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,5,20,0.88);
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: #0a1832;
+  border: 2px solid #2a4a8e;
+  border-radius: 16px;
+  max-width: 620px;
+  width: 100%;
+  padding: 32px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: popIn 0.18s ease;
+}
+@keyframes popIn {
+  from { transform: scale(0.92); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+.modal-cat {
+  font-size: 11px; color: #e8d87a; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px;
+}
+.modal-pts {
+  font-size: 38px; font-weight: 800; color: #e8d87a;
+  font-style: italic; margin-bottom: 18px;
+  text-shadow: 0 0 20px rgba(232,216,122,0.4);
+}
+.modal-clue {
+  font-size: 20px; font-weight: 500; color: #e8f0ff;
+  line-height: 1.6; margin-bottom: 28px;
+  padding: 20px; background: #0f2040;
+  border-radius: 12px; border-left: 4px solid #e8d87a;
+}
+
+.reveal-btn {
+  width: 100%; padding: 14px;
+  background: #1a3a8e; color: #f0f4ff;
+  border: none; border-radius: 10px;
+  font-size: 16px; font-weight: 700;
+  cursor: pointer; letter-spacing: 0.5px;
+  transition: background 0.15s;
+}
+.reveal-btn:hover { background: #2a4aae; }
+
+.answer-label {
+  font-size: 10px; color: #6a83a4;
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.answer-box {
+  background: #0d2a12; border: 1px solid #2a6a2a;
+  border-radius: 12px; padding: 18px;
+  margin-bottom: 24px;
+  font-size: 18px; font-weight: 600; color: #a0e8a0;
+  line-height: 1.5;
+}
+
+.close-btn {
+  width: 100%; margin-top: 10px; padding: 11px;
+  border: 1px solid #2a4070;
+  border-radius: 10px; background: transparent;
+  font-size: 13px; color: #6a83a4; cursor: pointer;
+  transition: background 0.12s;
+}
+.close-btn:hover { background: #0f2040; color: #c0d0e8; }
+.close-btn.done {
+  border-color: #e8d87a; color: #e8d87a;
+  margin-top: 0; margin-bottom: 6px;
+}
+
+/* Think music bar */
+.music-bar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 20px; padding: 10px 14px;
+  background: #0f2040; border-radius: 8px;
+  border: 1px solid #1a3a6e;
+}
+.music-bar span { font-size: 12px; color: #6a83a4; }
+.music-btn {
+  padding: 5px 14px; border-radius: 6px;
+  border: 1px solid #2a4070; background: transparent;
+  font-size: 12px; color: #c0d0e8; cursor: pointer;
+}
+.music-btn:hover { background: #1a3a6e; }
+
+.reset-btn {
+  display: block; margin: 0 auto;
+  padding: 7px 20px;
+  border: 1px solid #2a4070; border-radius: 8px;
+  background: transparent; font-size: 12px;
+  color: #6a83a4; cursor: pointer;
+}
+.reset-btn:hover { background: #0f2040; color: #c0d0e8; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <h1>Global Entrepreneurship Jeopardy</h1>
+    <p>TMGTPS5130 &mdash; Spring 2026 Review</p>
+  </div>
+  <div class="board" id="board"></div>
+
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:10px;">
+    <button class="reset-btn" onclick="resetBoard()">Reset Board</button>
+  </div>
+
+  <div style="margin-top:32px;border-top:1px solid #1a3a6e;padding-top:24px;text-align:center;">
+    <div style="font-size:10px;color:#2a4a6e;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;">End of Game</div>
+    <button id="fj-launch-btn" onclick="openFinalJeopardy()" style="
+      padding: 14px 40px;
+      background: linear-gradient(135deg, #1a3060 0%, #0d1a40 100%);
+      border: 2px solid #e8d87a;
+      border-radius: 10px;
+      color: #e8d87a;
+      font-size: 18px;
+      font-weight: 800;
+      font-style: italic;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    " onmouseover="this.style.background='linear-gradient(135deg,#2a4080 0%,#1a2a50 100%)'"
+       onmouseout="this.style.background='linear-gradient(135deg,#1a3060 0%,#0d1a40 100%)'"
+       onmousedown="this.style.transform='scale(0.97)'"
+       onmouseup="this.style.transform='scale(1)'">
+      ★ Final Jeopardy ★
+    </button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<div class="modal-overlay" id="fj-overlay">
+  <div class="modal" id="fj-modal" style="max-width:680px;"></div>
+</div>
+
+<script>
+/* ── DATA ── */
+const CATS = [
+  "Startup Terminology",
+  "Frameworks & Research",
+  "Global Scaling Stories",
+  "European Ecosystems",
+  "MENA Ecosystems",
+  "Ecosystem Strategy"
+];
+
+const QS = {
+  "Startup Terminology": [
+    { pts:200,  clue:"This type of privately held company has reached a valuation of exactly $10 billion.", answer:"What is a decacorn?", dd:false },
+    { pts:400,  clue:"This term describes a privately held company that once reached unicorn status but has since fallen below the $1 billion valuation threshold.", answer:"What is a zombiecorn?", dd:false },
+    { pts:600,  clue:"This term — derived from the Latin prefix meaning 100 — describes a privately held startup valued at $100 billion or more.", answer:"What is a hectocorn?", dd:false },
+    { pts:800,  clue:"Unlike unicorns chasing rapid hypergrowth, these companies prioritize long-term profitability and sustainability step by step — named after an animal famous for endurance.", answer:"What is a camel?", dd:true },
+    { pts:1000, clue:"This database is widely used to track startup valuations, funding rounds, and unicorn status — not the Wall Street Journal, AngelList, or GEM.", answer:"What is Crunchbase?", dd:false }
+  ],
+  "Frameworks & Research": [
+    { pts:200,  clue:"According to Berger-de León et al. (2022) at McKinsey, unicorn creation is driven by repeatable patterns often summarized as the 5Ts: Team, Technology, Traction, Timing, and this fifth T.", answer:"What is Total Addressable Market (TAM)?", dd:false },
+    { pts:400,  clue:"Brian Halligan of HubSpot describes this framework, used to align an organization around shared priorities, track progress, and explicitly park lower-priority initiatives.", answer:"What is the MSPOT framework?", dd:false },
+    { pts:600,  clue:"According to Halligan, as a founder transitions from startup to scaleup CEO, the ratio of perspiration to inspiration inverts — from roughly 90% perspiration to roughly this percentage of inspiration.", answer:"What is 90% inspiration?", dd:false },
+    { pts:800,  clue:"Perplexity co-founder Aravind Srinivas cited this concept from academia — where every claim must trace to a credible source — as the inspiration for Perplexity's cited-answer product design.", answer:"What is the academic citation graph?", dd:false },
+    { pts:1000, clue:"Seitz et al. (2025) found in a meta-analysis that accelerators generally produce this kind of impact on new venture performance — statistically real but modest, especially in weaker VC markets.", answer:"What is a statistically significant but small positive effect?", dd:true }
+  ],
+  "Global Scaling Stories": [
+    { pts:200,  clue:"To secure early venture funding, Canva co-founder Melanie Perkins left Australia and spent time in this U.S. tech hub.", answer:"What is Silicon Valley?", dd:false },
+    { pts:400,  clue:"ByteDance launched Douyin for China and this app internationally, using a dual-version strategy paired with the acquisition of Musical.ly to scale globally.", answer:"What is TikTok?", dd:false },
+    { pts:600,  clue:"In 2018, Grab eliminated its biggest rival in Southeast Asia by acquiring this company's regional ride-hailing and food delivery operations across 8 countries.", answer:"What is Uber?", dd:false },
+    { pts:800,  clue:"This UK-founded digital bank, with the mission 'Money = simplified,' surpassed 35 million customers across 38 countries and was valued at $45 billion in 2024 — making it one of London's top fintech unicorns.", answer:"What is Revolut?", dd:true },
+    { pts:1000, clue:"Israeli cybersecurity startup Wiz was acquired in 2024 for $32 billion by this company, marking one of the largest tech acquisitions in history.", answer:"What is Google?", dd:false }
+  ],
+  "European Ecosystems": [
+    { pts:200,  clue:"This European country holds the #1 regional ranking in Europe every year from 2021–2025 and is known for fintech unicorns like Revolut and Wise, powered by its status as a global financial hub.", answer:"What is the United Kingdom?", dd:false },
+    { pts:400,  clue:"Sweden is home to these four high-quality global startups cited in the course slides as hallmarks of its ecosystem.", answer:"What are Spotify, Minecraft, Klarna, and King?", dd:false },
+    { pts:600,  clue:"This small Baltic nation of 1.3 million people has approximately 85 startups per 100,000 people, grew 34% in 2025, and is known for e-Residency, Nomad Visas, and the 'Skype Mafia' multiplier effect.", answer:"What is Estonia?", dd:false },
+    { pts:800,  clue:"France's President Macron was directly involved in promoting this country's startup scene, which includes Station F, VivaTech, and 30+ unicorns including Mistral AI.", answer:"What is France?", dd:false },
+    { pts:1000, clue:"This German city is ranked #3 in Europe for frontier AI researchers, has 9,000+ AI professionals, €584 million invested in AI startups, and will open a Google AI Center in 2026.", answer:"What is Berlin?", dd:true }
+  ],
+  "MENA Ecosystems": [
+    { pts:200,  clue:"According to Startup Genome's 2024 MENA rankings, this city in Israel holds the #1 regional spot, followed by Dubai in second place.", answer:"What is Tel Aviv?", dd:false },
+    { pts:400,  clue:"Founded in 2012 in Dubai, this super app was the first unicorn in MENA outside of Israel and was acquired by Uber for $3.1 billion in 2020.", answer:"What is Careem?", dd:false },
+    { pts:600,  clue:"Saudi Arabia made the biggest ranking jump of any country in 2025 — moving up this many spots in the StartupBlink global index — and was named Country of the Year.", answer:"What is 27 spots?", dd:false },
+    { pts:800,  clue:"Abu Dhabi launched its Government Digital Strategy 2025–2027 with a US $3.3 billion investment, aiming to become the world's first city with this distinction by 2027.", answer:"What is the world's first fully AI-native city?", dd:true },
+    { pts:1000, clue:"Bahrain serves as the regional testbed for these two tech sectors in MENA, and its Bahrain Economic Development Board offers 100% foreign ownership and zero corporate tax to attract global startups.", answer:"What are Fintech and Regtech?", dd:false }
+  ],
+  "Ecosystem Strategy": [
+    { pts:200,  clue:"According to Startup Genome methodology, an innovation ecosystem is geographically bounded within approximately this radius.", answer:"What is 62 miles (100 km)?", dd:false },
+    { pts:400,  clue:"According to Endeavor's Unicorn Founder Pathways research, this type of entrepreneur — one who reinvests both capital and experience into new ventures — is the key driver of the multiplier effect.", answer:"What is a repeat (serial) entrepreneur?", dd:false },
+    { pts:600,  clue:"A city aiming to become a global AI hub should take this evidence-based action rather than generic tax cuts or marketing campaigns, according to ecosystem strategy research.", answer:"What is diagnosing ecosystem bottlenecks and aligning stakeholders around focused interventions?", dd:false },
+    { pts:800,  clue:"Running its fourth edition in April 2026, this large startup and innovation conference in Japan focuses on sustainable tech and government-identified growth sectors, expected to attract 700+ startups.", answer:"What is SusHi Tech Tokyo?", dd:false },
+    { pts:1000, clue:"According to Startup Genome's 2025 global rankings, this Asia-Pacific country declined three places compared to 2019, while all other listed countries improved.", answer:"What is India?", dd:true }
+  ]
+};
+
+/* ── AUDIO ENGINE ──────────────────────────────────────────────────────────
+ * Rules that make Web Audio reliable across browsers and iframes:
+ * 1. Create AudioContext lazily (never on page load).
+ * 2. Always call resume() before scheduling — it returns a Promise.
+ * 3. Schedule notes only INSIDE the .then() of that Promise, never before.
+ * 4. Add a 50ms safety offset to currentTime so notes don't fire in the past.
+ * 5. Pre-warm on first pointerdown so the context is running before any click.
+ * ───────────────────────────────────────────────────────────────────────── */
+let AC = null;
+
+function getAC() {
+  if (!AC) {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return AC;
+}
+
+/* Warm the context on very first touch/click anywhere */
+function warmAudio() {
+  const ac = getAC();
+  ac.resume().catch(() => {});
+  document.removeEventListener('pointerdown', warmAudio, true);
+  document.removeEventListener('keydown',     warmAudio, true);
+}
+document.addEventListener('pointerdown', warmAudio, true);
+document.addEventListener('keydown',     warmAudio, true);
+
+/* Play a single oscillator note — always called after resume resolves */
+function _note(ac, freq, startT, dur, vol, type) {
+  const o = ac.createOscillator();
+  const g = ac.createGain();
+  o.type = type || 'sine';
+  o.frequency.value = freq;
+  o.connect(g);
+  g.connect(ac.destination);
+  const t0 = Math.max(startT, ac.currentTime + 0.01);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur - 0.01);
+  o.start(t0);
+  o.stop(t0 + dur);
+}
+
+/* Generic helper: resume then run callback with (ac, baseTime) */
+function withAudio(cb) {
+  const ac = getAC();
+  ac.resume().then(() => {
+    cb(ac, ac.currentTime + 0.05);
+  }).catch(() => {});
+}
+
+/* Board cell click ding */
+function playSelect() {
+  withAudio((ac, t) => {
+    _note(ac, 880,  t,        0.07, 0.30, 'sine');
+    _note(ac, 1320, t + 0.06, 0.14, 0.20, 'sine');
+  });
+}
+
+/* Correct answer chime */
+function playCorrect() {
+  withAudio((ac, t) => {
+    [[523,0],[659,0.14],[784,0.28],[1047,0.44]].forEach(([f, d]) =>
+      _note(ac, f, t + d, 0.30, 0.28, 'sine'));
+  });
+}
+
+/* ── THINK MUSIC ────────────────────────────────────────────────────────────
+ * Uses a look-ahead scheduler: every SCHED_MS ms we schedule the next
+ * LOOKAHEAD seconds of notes. This is the Web Audio golden pattern for
+ * gapless loops. All scheduling happens inside resume().then() so the
+ * AudioContext is guaranteed running before we touch currentTime.
+ * ───────────────────────────────────────────────────────────────────────── */
+const THINK_NOTES = [
+  [392,0],[392,2],[392,4],[311,5],[349,6],
+  [392,8],[311,10],[392,12],[440,14],[392,16],
+  [349,18],[311,20],[261,22],[294,24],[349,26],
+  [392,28],[311,30],[392,32],[440,34],[392,36],
+  [349,38],[311,40],[294,42],[261,44]
+];
+const T_BEAT     = 0.28;   /* seconds per beat */
+const T_LOOP     = 48 * T_BEAT;  /* full loop duration ~13.4 s */
+const T_AHEAD    = 3.5;   /* schedule this far ahead */
+const T_INTERVAL = 1200;  /* scheduler tick ms */
+
+let tkTimer   = null;
+let tkActive  = false;
+let tkNextT   = 0;   /* next AC time we need to schedule from */
+
+function _scheduleTick() {
+  if (!tkActive) return;
+  const ac = getAC();
+  ac.resume().then(() => {
+    if (!tkActive) return;
+    const horizon = ac.currentTime + T_AHEAD;
+    while (tkNextT < horizon) {
+      /* Which beat position within the loop does tkNextT correspond to? */
+      const loopOffset = tkNextT % T_LOOP;
+      /* Schedule all notes whose loop-position falls in [loopOffset, loopOffset+T_AHEAD) */
+      THINK_NOTES.forEach(([f, b]) => {
+        const beatT = b * T_BEAT;
+        /* Find the absolute AC time for this beat in the current or next loop */
+        const loopStart = tkNextT - loopOffset;
+        let noteT = loopStart + beatT;
+        if (noteT < tkNextT) noteT += T_LOOP;
+        if (noteT < horizon) {
+          _note(ac, f, noteT, T_BEAT * 0.72, 0.20, 'triangle');
+        }
+      });
+      tkNextT += T_AHEAD;
+    }
+  }).catch(() => {});
+}
+
+function startThinkMusic() {
+  stopThinkMusic();
+  tkActive = true;
+  const ac = getAC();
+  ac.resume().then(() => {
+    if (!tkActive) return;
+    tkNextT = ac.currentTime + 0.05;
+    _scheduleTick();
+    tkTimer = setInterval(_scheduleTick, T_INTERVAL);
+  }).catch(() => {});
+}
+
+function stopThinkMusic() {
+  tkActive = false;
+  if (tkTimer) { clearInterval(tkTimer); tkTimer = null; }
+}
+
+/* ── STATE ── */
+let used = {};
+let current = null;
+
+/* ── BOARD ── */
+function renderBoard() {
+  const board = document.getElementById('board');
+  let html = CATS.map(c => `<div class="cat-header">${c}</div>`).join('');
+  [200,400,600,800,1000].forEach(pts => {
+    CATS.forEach(cat => {
+      const key = cat + '|' + pts;
+      if (used[key]) {
+        html += `<div class="cell used"></div>`;
+      } else {
+        html += `<div class="cell" data-cat="${escAttr(cat)}" data-pts="${pts}">$${pts}</div>`;
+      }
+    });
+  });
+  board.innerHTML = html;
+
+  /* Attach listeners after innerHTML set */
+  board.querySelectorAll('.cell:not(.used)').forEach(el => {
+    el.addEventListener('click', () => {
+      const cat = el.getAttribute('data-cat');
+      const pts = parseInt(el.getAttribute('data-pts'), 10);
+      openQuestion(cat, pts);
+    });
+  });
+}
+
+function escAttr(s) { return s.replace(/"/g,'&quot;'); }
+
+/* ── MODAL ── */
+function openQuestion(cat, pts) {
+  const key = cat + '|' + pts;
+  if (used[key]) return;
+  const q = QS[cat].find(x => x.pts === pts);
+  if (!q) return;
+  current = { cat, pts, q, key };
+
+  playSelect();
+
+  const modal = document.getElementById('modal');
+
+  showClue();
+
+  document.getElementById('overlay').classList.add('open');
+}
+
+function showClue() {
+  const { cat, pts, q } = current;
+  const modal = document.getElementById('modal');
+  modal.innerHTML = `
+    <div class="modal-cat">${cat}</div>
+    <div class="modal-pts">$${pts}</div>
+    <div class="modal-clue">${q.clue}</div>
+    <div class="music-bar">
+      <span>Think music:</span>
+      <button class="music-btn" id="think-play-btn">&#9654; Play</button>
+      <button class="music-btn" id="think-stop-btn">&#9646;&#9646; Stop</button>
+    </div>
+    <div id="ans-area">
+      <button class="reveal-btn" onclick="showAnswer()">Reveal Answer</button>
+    </div>
+    <button class="close-btn" onclick="closeModal(false)" style="margin-top:12px;">Close (keep active)</button>
+  `;
+}
+
+function showAnswer() {
+  stopThinkMusic();
+  playCorrect();
+  const { q } = current;
+  document.getElementById('ans-area').innerHTML = `
+    <div class="answer-label">Correct Response</div>
+    <div class="answer-box">${q.answer}</div>
+    <button class="close-btn done" onclick="closeModal(true)">Done — mark used ✓</button>
+  `;
+}
+
+function closeModal(markUsed) {
+  stopThinkMusic();
+  if (markUsed && current) {
+    used[current.key] = true;
+    renderBoard();
+  }
+  document.getElementById('overlay').classList.remove('open');
+  current = null;
+}
+
+function resetBoard() {
+  if (!confirm('Reset the entire board?')) return;
+  used = {};
+  renderBoard();
+}
+
+/* Delegate clicks inside modal for dynamic buttons */
+document.getElementById('modal').addEventListener('click', function(e) {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const id = btn.id;
+  if (id === 'think-play-btn')  { startThinkMusic(); return; }
+  if (id === 'think-stop-btn')  { stopThinkMusic();  return; }
+});
+
+/* Close on overlay background click */
+document.getElementById('overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal(false);
+});
+
+/* ── FINAL JEOPARDY ── */
+const FJ = {
+  category: "Global Entrepreneurship Ecosystems",
+  clue: "According to the StartupBlink Global Startup Ecosystem Index 2025, this European country — not an EU member — achieved the highest annual ecosystem growth rate among the top 5 European nations at over 31%, jumped to 9th globally, is ranked 3rd worldwide in Healthtech, and saw its first fintech startup achieve unicorn status in 2025.",
+  answer: "What is Switzerland?"
+};
+
+let fjState = 'idle'; /* idle → category → clue → answer */
+
+function openFinalJeopardy() {
+  fjState = 'category';
+  renderFJ();
+  document.getElementById('fj-overlay').classList.add('open');
+  /* Play a slow, suspenseful version of the select sound */
+  withAudio((ac, t) => {
+    [[220,0],[277,0.4],[330,0.8],[415,1.2]].forEach(([f,d]) =>
+      _note(ac, f, t+d, 0.5, 0.25, 'triangle'));
+  });
+}
+
+function renderFJ() {
+  const m = document.getElementById('fj-modal');
+  if (fjState === 'category') {
+    m.innerHTML = `
+      <div style="text-align:center;padding:12px 0 24px;">
+        <div style="font-size:11px;color:#6a83a4;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;">Final Jeopardy</div>
+        <div style="width:60px;height:2px;background:#e8d87a;margin:0 auto 24px;"></div>
+        <div style="font-size:13px;color:#8fa3c4;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Category</div>
+        <div style="font-size:26px;font-weight:800;color:#e8d87a;font-style:italic;line-height:1.3;margin-bottom:28px;">${FJ.category}</div>
+        <div style="font-size:13px;color:#6a83a4;margin-bottom:28px;line-height:1.6;">Write down your wager now.<br>The clue will be revealed when everyone is ready.</div>
+        <button class="reveal-btn" onclick="fjShowClue()">Show the Clue</button>
+      </div>`;
+  } else if (fjState === 'clue') {
+    m.innerHTML = `
+      <div style="font-size:10px;color:#6a83a4;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">Final Jeopardy</div>
+      <div style="font-size:11px;color:#e8d87a;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:18px;">${FJ.category}</div>
+      <div class="modal-clue" style="font-size:19px;line-height:1.7;">${FJ.clue}</div>
+      <div class="music-bar">
+        <span>Think music:</span>
+        <button class="music-btn" id="think-play-btn">&#9654; Play</button>
+        <button class="music-btn" id="think-stop-btn">&#9646;&#9646; Stop</button>
+      </div>
+      <button class="reveal-btn" onclick="fjShowAnswer()">Reveal Answer</button>
+      <button class="close-btn" onclick="closeFJ()" style="margin-top:10px;">Close</button>`;
+  } else if (fjState === 'answer') {
+    m.innerHTML = `
+      <div style="font-size:10px;color:#6a83a4;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">Final Jeopardy</div>
+      <div style="font-size:11px;color:#e8d87a;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:18px;">${FJ.category}</div>
+      <div class="modal-clue" style="font-size:19px;line-height:1.7;margin-bottom:20px;">${FJ.clue}</div>
+      <div class="answer-label">Correct Response</div>
+      <div class="answer-box" style="font-size:20px;font-weight:700;">${FJ.answer}</div>
+      <button class="close-btn done" onclick="closeFJ()" style="margin-top:6px;">Done</button>`;
+  }
+}
+
+function fjShowClue() {
+  fjState = 'clue';
+  renderFJ();
+  startThinkMusic();
+}
+
+function fjShowAnswer() {
+  stopThinkMusic();
+  playCorrect();
+  fjState = 'answer';
+  renderFJ();
+}
+
+function closeFJ() {
+  stopThinkMusic();
+  fjState = 'idle';
+  document.getElementById('fj-overlay').classList.remove('open');
+}
+
+/* Delegate think music buttons inside fj-modal too */
+document.getElementById('fj-modal').addEventListener('click', function(e) {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  if (btn.id === 'think-play-btn')  startThinkMusic();
+  if (btn.id === 'think-stop-btn')  stopThinkMusic();
+});
+
+document.getElementById('fj-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeFJ();
+});
+
+/* Init */
+renderBoard();
+</script>
+</body>
+</html>
